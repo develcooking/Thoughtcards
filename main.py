@@ -16,17 +16,18 @@ class Program:
         data_dir = os.path.join(os.getcwd(), 'data')
         self.decks_dir = data_dir
 
-        # create a list of decks
-        self.decks = self.UseDB("SELECT * FROM decks;", filename)  # holds the id, name and icon of all decks
+        # Creating a list of decks
+        self.decks = self.UseDB("SELECT * FROM decks;", filename)
 
-        # eine Liste der cards erstellen
-        self.all_cards = self.UseDB("SELECT * FROM cards;", filename)  # holds id, front and back of all cards
+        # Creating a list of cards
+        self.all_cards = self.UseDB("SELECT * FROM cards;", filename)
 
         for d in self.decks:
             deck = Deck()
             deck.id = d[0]
             deck.name = d[1]
             deck.icon = d[2]
+
             for crd in self.all_cards:
                 if crd[0] == deck.id:
                     card = Card()
@@ -34,6 +35,7 @@ class Program:
                     card.front = crd[1]
                     card.back = crd[2]
                     deck.cards_model.append(card)
+
             self.decks_model.append(deck)
 
     def UseDB(self, command, filename, parameters=None):
@@ -55,6 +57,7 @@ class Program:
 
     def GetFile(self):
         return "database.db"
+
     def Dialog(self):
         self.LoadDecks(self.GetFile())
         print("Thoughtcards-cmd")
@@ -287,6 +290,10 @@ class Program:
                         # Update the database; here you need to add a more robust way to store the card in the DB
                         self.UseDB("INSERT INTO cards (deck_id, front, back) VALUES (?, ?, ?)", filename, (deck_to_add.id, newcard.front, newcard.back))
                         print(f"New card added to deck '{deck_to_add.name}' successfully.")
+                    
+                    elif userdecknametoaddto.lower() in self.appoptions:
+                        AppOptions(userdecknametoaddto.lower())
+
                     else:
                         print("The entered deck name is not valid. Please try again.")
             else:
@@ -294,45 +301,37 @@ class Program:
                 
         self.BackToMainDialog()
 
-    def EditCard(self, selected_card, IsNewCard:bool, userinputoption):
-        validoption:bool = False
+    def EditCard(self, selected_card, IsNewCard: bool, userinputoption):
+        validoption = False
         while validoption != True:
             print("What do you want to do with this card?")
             print("1. Edit front")
             print("2. Edit back")
             print("3. Edit both")
             print("4. Delete card")
-            if IsNewCard:
-                print("5. Add to deck")
+            print("5. Add to deck")
             userinputoption = input("Please enter the number of the option you want to execute: ").strip()
-            possibleoptions = ["1", "2", "3", "4", self.appoptions]
-            if IsNewCard:
-                possibleoptions.append("5")
+            possibleoptions = ["1", "2", "3", "4", "5", self.appoptions]
             if userinputoption not in possibleoptions:
-                print("Invalid option try again")
+                print("Invalid option, try again.")
             else:
                 validoption = True
+
         if userinputoption == "1":
             updated_card = self.EditSiteOfCard(selected_card, "front")
-            
             return updated_card
+
         elif userinputoption == "2":
             updated_card = self.EditSiteOfCard(selected_card, "back")
             return updated_card
+
         elif userinputoption == "3":
             updated_card = self.EditSiteOfCard(selected_card, "both")
             return updated_card
+
         elif userinputoption == "4":
-            self.RenderCard(selected_card, "Card to Delete", False, None) ######## Working here
-            print("Are you shure you want to delete this card?")
-            areyousure = input("THIS CHANGE IS IRREVERSIBLE [Y|es]/[N|o]: ").lower().strip()
-            if areyousure in ["yes", "y"]:
-                selected_card
-                    
-            command = '''DELETE FROM cards WHERE deck_id = ? AND front = ? AND back = ?'''
-            parameters = (selected_card.deck_id, selected_card.front, selected_card.back)
-            filename = self.GetFile()
-            self.UseDB(command, filename, parameters)
+            self.DeleteCard(selected_card)
+
 
         elif userinputoption == "5":
             print("---")
@@ -394,8 +393,26 @@ class Program:
 
         return selected_card  # retrun the og card if no changes where made
 
-    def format_card_text(self,text):
+    def format_card_text(self,text): # a very basic fn to convert \n's to <br> for a more clear view on the cli
         return text.replace('\n', '<br>')
+    
+    def DeleteCard(self, cardtodelete):
+        if isinstance(cardtodelete, Card):
+
+            self.RenderCard(cardtodelete, "Card To Delete", False, None)
+
+            print("Are you sure you want to delete this card?")
+            areyousure = input("THIS CHANGE IS IRREVERSIBLE [Y|es]/[N|o]: ").lower().strip()
+            if areyousure in ["yes", "y"]:
+                command = '''DELETE FROM cards WHERE deck_id = ? AND WHERE front = ? AND WHERE front = ?'''  # Assuming `id` is the primary key
+                parameters = (cardtodelete.deck_id, cardtodelete.front, cardtodelete.back,)  # Use card id for deletion
+                filename = self.GetFile()
+                self.UseDB(command, filename, parameters)
+                print("Card deleted successfully.")
+                return
+        else:
+            print("Error: cardtodelete is not a card")
+            return
 
     def CreateDeck(self):
         filename = self.GetFile()
@@ -403,11 +420,12 @@ class Program:
         decksarray = self.AvalibleDecks()
         DeckIDExistsAlready = False
         while not DeckIDExistsAlready:
-            deck_id = uuid.uuid4().hex
-            if not any(deck.id == deck_id for deck in decksarray):  # Check if the deck exists
-                DeckIDExistsAlready = True
+            new_deck_id = uuid.uuid4().hex
+            if not any(deck.id == new_deck_id for deck in decksarray):  # Check if the deck exists
+                DeckIDExistsAlready = True # makes sure that the newly created deckid is unic
+        
         deck_name = input("Please enter your deck name here: ").strip()
-        if deck_name in self.appoption:
+        if deck_name in self.appoptions:
             self.AppOptions(deck_name)
         AddedIconPassed = False
         UserIcon = None
