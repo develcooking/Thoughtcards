@@ -12,9 +12,89 @@ class Program:
         self.decks_model = []
         self.appoptions = ["/exit", "/dialog", "/newcard"]
 
+    
+    def CheckForValidDB(self, filename):
+        # Check if the database file exists
+        db_file = os.path.join(self.decks_dir, filename)
+        if not os.path.isfile(db_file):
+            print(f"Database file '{db_file}' does not exist.")
+            return False
+
+        # Check if the tables exist
+        table_names = ["decks", "cards"]
+        required_columns_map = {
+            "decks": ["deck_id", "name", "icon"],
+            "cards": ["deck_id", "front", "back", "card_id"]
+        }
+
+        for table_name in table_names:
+            table_status = self.UseDB(f"PRAGMA table_info({table_name});", filename)
+
+            if table_status is None:
+                print(f"Error checking for table '{table_name}' existence.")
+                return False
+
+            if not table_status:
+                print(f"Table '{table_name}' does not exist in the database.")
+                return False
+
+            required_columns = required_columns_map[table_name]
+            actual_columns = {column[1]: True for column in table_status}
+
+            if not all(column in actual_columns for column in required_columns):
+                print(f"Your Database looks broken, please fix it for table '{table_name}'. Missing columns: {', '.join(column for column in required_columns if column not in actual_columns)}")
+                return False
+
+            # Additional checks for the 'cards' table migration scenario
+            if table_name == "cards":
+                if "card_id" not in actual_columns:
+                    print("Your Database looks like it comes from a project like Memorado. If you want to migrate your database over, we would have to modify it. Please BACKUP YOUR DATABASE before migrating. THIS IS IRREVERSIBLE")
+                    u = input("Are you sure you want to continue? [Y|es]/[N|o]: ").strip()
+                    if u.lower() in ["yes", "y"]:
+                        if self.UseDB("ALTER TABLE cards ADD COLUMN card_id TEXT;", filename):  # Check if the ALTER TABLE command was successful
+                            if self.migrate_card_ids(filename):
+                                print("Migration was successful.")
+                            else:
+                                print("Migration of card IDs failed.")
+                            return True
+                        else:
+                            print("Failed to alter the cards table. Migration aborted.")
+                            return False
+                    else:
+                        print("Migration aborted.")
+                        return False
+
+        return True
+
+
+    def migrate_card_ids(self, filename):
+        self.all_cards = self.UseDB("SELECT * FROM cards;", filename)
+        for crd in self.all_cards:
+            if crd[3] is None:  # If card_id is None
+                newcardid = None
+                while not newcardid:
+                    candidate_id = uuid.uuid4().hex
+                    # Check that this id does not exist in the existing cards
+                    if not any(existing_card[3] == candidate_id for existing_card in self.all_cards):
+                        newcardid = candidate_id
+                        # Update the database with this new card_id
+                        self.UseDB("UPDATE cards SET card_id = ? WHERE deck_id = ? AND front = ?",
+                                    filename, (newcardid, crd[0], crd[1]))
+
+        # Verify if card IDs were successfully updated
+        if any(crd[3] is None for crd in self.all_cards):
+            print("Error while migrating your database. Some card IDs are still None.")
+            return False
+
+        return True
+
     def LoadDecks(self, filename):
         data_dir = os.path.join(os.getcwd(), 'data')
         self.decks_dir = data_dir
+
+        if not self.CheckForValidDB(filename):
+            print("There is a problem with your database pls fix it")
+            sys.exit(1)
 
         # Creating a list of decks
         self.decks = self.UseDB("SELECT * FROM decks;", filename)
