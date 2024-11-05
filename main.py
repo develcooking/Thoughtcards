@@ -31,29 +31,38 @@ class Program:
             for crd in self.all_cards:
                 if crd[0] == deck.id:
                     card = Card()
-                    card.id = crd[0]
+                    card.deck_id = crd[0]
                     card.front = crd[1]
                     card.back = crd[2]
+                    card.card_id = crd[3]
                     deck.cards_model.append(card)
 
             self.decks_model.append(deck)
 
     def UseDB(self, command, filename, parameters=None):
-        conn = sqlite3.connect(os.path.join(self.decks_dir, filename))
-        c = conn.cursor()  # create a cursor instance
+        conn = None
+        try:
+            conn = sqlite3.connect(os.path.join(self.decks_dir, filename))
+            c = conn.cursor()  # create a cursor instance
 
-        if parameters is not None:  # if parameter is passed on execute command
-            c.execute(command, parameters)
-        else:
-            c.execute(command)
+            if parameters is not None:  # if parameters are passed for the execute command
+                c.execute(command, parameters)
+            else:
+                c.execute(command)
 
-        if 'SELECT' in command:  # if the command is a SELECT grab the data
-            out = c.fetchall()
-            conn.close()   # close connection
-            return out
-        else:
-            conn.commit()   # safe changes on db
-            conn.close()   # close connection
+            if 'SELECT' in command or 'PRAGMA' in command:  # if the command is a SELECT or PRAGMA, grab the data
+                out = c.fetchall()
+                return out
+            else:
+                conn.commit()  # save changes to the database
+                return True  # Indicate success for non-SELECT commands
+        except sqlite3.Error as e:
+            print(f"SQLite error: {e}")
+            return None  # Return None to indicate an error
+        finally:
+            if conn:
+                conn.close()  # Ensure the connection is closed
+
 
     def GetFile(self):
         return "database.db"
@@ -339,16 +348,16 @@ class Program:
             self.ShowAvalibleDecks(decksarray)
             decksarraylower = [d.name.lower() for d in decksarray]
             isvaliddeckname = False
-            while isvaliddeckname != True:
-                userdecknametoaddto = input("Please enter a valid deckname you want to your new card to: ")
-                if userdecknametoaddto in decksarraylower:
+            while not isvaliddeckname:
+                userdecknametoaddto = input("Please enter a valid deck name you want to add your new card to: ").strip()
+                if userdecknametoaddto.lower() in decksarraylower:
                     isvaliddeckname = True
                     updated_card = selected_card
-                    updated_card.deck_id = userdecknametoaddto
-                    self.UseDB(updated_card,self.GetFile())
-                    self.UseDB("INSERT INTO cards (deck_id, front, back) VALUES (?, ?, ?)", filename, (updated_card.deck_id, updated_card.front, updated_card.back))
+                    updated_card.deck_id = userdecknametoaddto  # Assign deck_id
+                    self.UseDB("INSERT INTO cards (deck_id, front, back) VALUES (?, ?, ?)", self.GetFile(), (updated_card.deck_id, updated_card.front, updated_card.back))
                 else:
-                    print("The entered deckname is not a deck. Please try again")
+                    print("The entered deck name is not valid. Please try again.")
+
         elif userinputoption in self.appoptions:
             self.AppOptions(userinputoption)
 
@@ -459,6 +468,7 @@ class Card:
         self.deck_id = None
         self.front = None
         self.back = None
+        self.card_id = None
 
 if __name__ == '__main__':
     program = Program()
