@@ -124,6 +124,11 @@ class Program:
         isvaliddeckname = False
         selected_deck = None
 
+        # Prints Out the Avalible decks to enter
+        print("---")
+        decksarray = self.AvalibleDecks()
+        self.ShowAvalibleDecks(decksarray)
+
         while isvaliddeckname != True:
             decknametoenter = input("Please input the name of the deck you want to enter: ").strip()
             if decknametoenter.lower() in self.appoptions:
@@ -186,6 +191,9 @@ class Program:
         decksarray = self.AvalibleDecks()
         decksarraylower = [d.name.lower() for d in decksarray]
 
+        print("---")
+        self.ShowAvalibleDecks(decksarray)
+
         decknametoenter = input("Please input the name of the deck you want to enter: ").strip()
         isvaliddeckname = False
         selected_deck = None
@@ -213,9 +221,9 @@ class Program:
             self.RenderCard(card, title, True, maxlen) # passes the card of a deck, render them out as multiple
             card_index[cardcounter] = card.id
 
-        cardtoeditisvalid = False  # Initialize to False
+        cardtoeditisvalid = False
         cardtoedit = None
-        while not cardtoeditisvalid:  # Change the condition to continue while False
+        while not cardtoeditisvalid:
             cardtoedit = input("Please enter the number of the card you want to edit: ").strip()
             if cardtoedit.isnumeric():
                 cardtoeditisvalid = True
@@ -224,39 +232,37 @@ class Program:
 
         # Get safely the card ID
         if not int(cardtoedit) in card_index:
-            print("Card number not found")
+            print("Card number not found.")
+            return  # Exit early if the card index is invalid
+
         selected_card_id = card_index[int(cardtoedit)]
         selected_card = next((card for card in selected_deck.cards_model if card.id == selected_card_id), None)
         
         if not selected_card:
             print("Card not found.")
-        else:
-            self.RenderCard(selected_card, title, False, None)
-            self.EditCard(cardtoedit, False, None)
+            return  # Exit early if the selected card is invalid
+
+        # Render the card to be edited
+        self.RenderCard(selected_card, "Card to Delete", False, None)
+        self.EditCard(selected_card, False, None)
+
     
     def RenderCard(self, card, title:str, RenderMultipleCards:bool, maxlen:int):
-        if RenderMultipleCards:
-            maxlen = None
-            maxlen = max(len(f"Front: {self.format_card_text(card.front)}"), len(f"Back: {self.format_card_text(card.front)}")) 
-            total_length = maxlen + len(title) + 4  # +4 for the "+ " and " +"
-            left_dashes = (total_length - len(title) - 2) // 2  # -2 for the spaces and around the title
-            right_dashes = total_length - len(title) - left_dashes - 2  # -2 for the spaces around the title
+        if not RenderMultipleCards or maxlen is None:
+            # Calculate maxlen correctly based on the current card
+            maxlen = max(len(f"Front: {self.format_card_text(card.front)}"),
+                        len(f"Back: {self.format_card_text(card.back)}"))
 
-            # first line with dashes
-            print(f"+{'-' * left_dashes} {title} {'-' * right_dashes}+")
-            print(f"Front: {self.format_card_text(card.front)}")
-            print(f"Back: {self.format_card_text(card.back)}")
-            print(f"+{'-' * (total_length)}+") # last line with same number of dashes 
-        else:
-            total_length = maxlen + len(title) + 4  # +4 for the "+ " and " +"
-            left_dashes = (total_length - len(title) - 2) // 2  # -2 for the spaces and around the title
-            right_dashes = total_length - len(title) - left_dashes - 2  # -2 for the spaces around the title
+        # Now ensure maxlen has a value before using it
+        total_length = maxlen + len(title) + 4  # +4 for the "+ " and " +"
+        left_dashes = (total_length - len(title) - 2) // 2  # Calculate dashes accordingly
+        right_dashes = total_length - len(title) - left_dashes - 2  # Remaining dashes
 
-            # first line with dashes
-            print(f"+{'-' * left_dashes} {title} {'-' * right_dashes}+")
-            print(f"Front: {self.format_card_text(card.front)}")
-            print(f"Back: {self.format_card_text(card.back)}")
-            print(f"+{'-' * (total_length)}+") # last line with same number of dashes 
+        # first line with dashes
+        print(f"+{'-' * left_dashes} {title} {'-' * right_dashes}+")
+        print(f"Front: {self.format_card_text(card.front)}")
+        print(f"Back: {self.format_card_text(card.back)}")
+        print(f"+{'-' * (total_length)}+")  # last line with same number of dashes 
 
     def NewCard(self):
         newcard = Card()  # Initialize a new card
