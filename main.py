@@ -10,7 +10,7 @@ class Program:
         self.decks = []
         self.all_cards = []
         self.decks_model = []
-        self.appoptions = ["/exit", "/dialog"]
+        self.appoptions = ["/exit", "/dialog", "/newcard"]
 
     def LoadDecks(self, filename):
         data_dir = os.path.join(os.getcwd(), 'data')
@@ -63,16 +63,17 @@ class Program:
         print("2. Enter deck via name")
         print("3. Create a new deck")
         print("4. Change cards of a deck")
-        print("5. Add new card")
         print(f"You can use also all other option thoughtout the program: {self.appoptions}")
         print("----------------")
 
         isvalidnumber = False
         while isvalidnumber is False:
             userpickedoption = input("Please enter a Number of the activity you want to do: ").strip()
-            if userpickedoption in ["1", "2", "3", "4", "5", self.appoptions]:
+            if userpickedoption in ["1", "2", "3", "4", self.appoptions]:
                 isvalidnumber = True
+
         if userpickedoption == "1":
+            # This will print out the avalible decks in the db
             print("---")
             decksarray = self.AvalibleDecks()
             self.ShowAvalibleDecks(decksarray)
@@ -91,13 +92,11 @@ class Program:
         elif userpickedoption == "4":
             self.ChangeCardsOfDeck()
         
-        elif userpickedoption == "5":
-            self.NewCard()
-        
         elif userpickedoption in self.appoptions:
             self.AppOptions(userpickedoption)
  
     def AppOptions(self, optionarg:str):
+        # This method is meant as a universal navigation tool
         if optionarg not in self.appoptions:
             return False # if false it isn't a appoption -> wrong input -> return if in a loop
         if optionarg == "/exit":
