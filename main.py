@@ -77,11 +77,7 @@ class Program:
             print("---")
             decksarray = self.AvalibleDecks()
             self.ShowAvalibleDecks(decksarray)
-            goback = input("Do you want to go back to the main dialog? [Y|es]/[N|o]")
-            if goback.lower() in ["yes", "y"]:
-                self.Dialog()
-            else:
-                sys.exit(0)
+            self.BackToMainDialog()
 
         elif userpickedoption == "2":
             self.EnterDeck()
@@ -175,11 +171,14 @@ class Program:
                 print(f"+---------------+")
 
         print("That where all cards in your deck.")
-        i = input("Do you want to go back to main dialog? [Y|es]/[N|o]: ").lower().strip()
-        if i in self.appoptions:
-            AppOptions(i)
-        elif i in ["yes", "y"]:
-            self.Dialog
+        self.BackToMainDialog()
+
+    def BackToMainDialog(self):
+        goback = input("Do you want to go back to the main dialog? [Y|es]/[N|o]").strip()
+        if goback.lower() in ["yes", "y"]:
+            self.Dialog()
+        elif goback.lower() in self.appoptions:
+            self.AppOptions()
         else:
             sys.exit(0)
     
@@ -286,11 +285,8 @@ class Program:
                         print("The entered deck name is not valid. Please try again.")
             else:
                 self.Dialog()  # Returns to the main dialog
-        goback = input("Do you want to go back to the main dialog? [Y|es]/[N|o]")
-        if goback.lower() in ["yes", "y"]:
-            self.Dialog()
-        else:
-            sys.exit(0)
+                
+        self.BackToMainDialog()
 
     def EditCard(self, selected_card, IsNewCard:bool, userinputoption):
         validoption:bool = False
