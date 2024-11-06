@@ -189,7 +189,7 @@ class Program:
             self.EnterDeck()
 
         elif userpickedoption == "3":
-            self.CreateDeck()
+            self.ManageDecks()
 
         elif userpickedoption == "4":
             self.ChangeCardsOfDeck()
@@ -542,32 +542,96 @@ class Program:
             print("Error: cardtodelete is not a card")
             return
 
-    def CreateDeck(self):
-        decksarray = self.AvalibleDecks()
-        new_deck_id = self.GenUUID4("deck")
-        
-        deck_name = input("Please enter your deck name here: ").strip()
-        if deck_name in self.appoptions:
-            self.AppOptions(deck_name)
-        AddedIconPassed = False
-        UserIcon = None
-        AddIcon = input("Do you want to add an Icon? [Y|es]/[N|o]: ").strip().lower()
-        if AddIcon in self.appoption:
-            self.AppOptions(AddIcon)
-        elif AddIcon in ["y", "yes"]:
-            UserIconExists = False
-            while not UserIconExists:
-                UserIcon = input("Please insert your icon (for now only emojis) here: ")
-                UserIconExists = UserIcon is not None
-            AddedIconPassed = True
-        else:
-            AddedIconPassed = True
+    def ManageDecks(self):
+        print("----------------")
+        print("1. Create new Deck")
+        print("2. Rename Deck")
+        print("3. Delete Deck")
+        print("----------------")
+        while True:
+            userinput = input("Please enter a number of the activity you want to do: ").strip()
+            if userinput in self.appoptions:
+                self.AppOptions(userinput)
+            elif userinput is "1":
+                self.modifyDeck("new")
+            elif userinput is "2":
+                self.modifyDeck("rename")
+            elif userinput is "3":
+                self.modifyDeck("delete")
 
-        if AddedIconPassed:
-            self.UseDB("INSERT INTO decks (deck_id, name, icon) VALUES (?, ?, ?)", self.GetFile(), (deck_id, deck_name, UserIcon))
-            print(f"New deck '{deck_name}' created successfully.")
-        else:
-            print("Error 213")
+    def modifyDeck(self, option):
+        filename = self.GetFile()
+        decksarray = self.AvalibleDecks()
+        decksarraylower = [d.name.lower() for d in decksarray]
+        if option not in ["new", "rename", "delete"]:
+            print("Invalid option in modifyDeck")
+            return
+
+        if option is "new":
+            new_deck_id = self.GenUUID4("deck")
+            newdeckquestion = "Please enter the deckname of the new deck: "
+    
+        elif option in ["rename", "delete"]:
+            while not selected_deck:
+                userDecktorename = input(f"Please enter the deckname of the deck you want to {option}: ").strip()
+                if newuserdeckname in self.appoptions:
+                    self.AppOptions(newuserdeckname)
+                elif userDecktorename.lower() not in decksarraylower:
+                    print("Deck not found please try again")
+                else:
+                    selected_deck = True
+            if option is "rename":
+                newdeckquestion = "Please enter the future name of your deck that you want to rename: "
+        
+        if option in ["new", "rename"]:
+            while not isvaliddeckname:
+                newuserdeckname = input(newdeckquestion).strip()
+                if newuserdeckname in self.appoptions:
+                    self.AppOptions(newuserdeckname)
+                elif newuserdeckname.lower() in decksarraylower:
+                    print("Deskname is already taken")
+                else:
+                    isvaliddeckname = True
+
+                AddIcon = input("Do you want to add an Icon? [Y|es]/[N|o]: ").strip().lower()
+                UserIcon = None
+                if AddIcon in self.appoptions:
+                    self.AppOptions(AddIcon)
+
+                elif AddIcon in ["yes", "y"]:
+                    while not UserIcon:
+                        UserIcon = input("Please insert your icon (for now only emojis) here: ").strip()
+                        if UserIcon in self.appoptions:
+                            self.AppOptions(UserIcon)
+
+            if option is "new":
+                if self.UseDB("INSERT INTO decks (deck_id, name, icon) VALUES (?, ?, ?)", filename, (deck_id, newuserdeckname, UserIcon)):
+                    print(f"New deck '{newuserdeckname}' created successfully.")
+                else:
+                    print(f"New deck '{newuserdeckname}' creation faild.")
+
+            elif option is "rename":
+                deck_idofthetorenamed = next(d.id for d in decksarray if d.name.lower() == userDecktorename.lower())
+                if self.UseDB("UPDATE deck SET deck.name = ? WHERE deck_id = ?", filename, (newuserdeckname, deck_idofthetorenamed)):
+                    print(f"Renaming of deck form: '{userDecktorename}' to: '{newuserdeckname}' was successful")
+                else:
+                    print(f"Renaming of deck form: '{userDecktorename}' to: '{newuserdeckname}' was not successful")
+            
+            elif option is "delete":
+                print("Are you shure you want to continue? This will delete the deck")
+                areyousure = input("Please type in: 'I AM SURE I WANT TO DELTETE THIS DECK'").strip()
+                if areyousure is "I AM SURE I WANT TO DELTETE THIS DECK":
+                    deck_idofthetodelte = next(d.id for d in decksarray if d.name.lower() == userDecktorename.lower())
+                    if not self.UseDB("DELETE FROM decks WHERE deck.id = ?", filename, deck_idofthetodelte):
+                        print(f"Error while removeing the deck: '{userDecktorename}'")
+                        return
+                    else:
+                        print(f"Removed successfully the deck: '{userDecktorename}'")
+                        if self.UseDB("UPDATE cards SET deck_id = ? WHERE deck_id = ? ", filename, (None, deck_idofthetodelte)):
+                            print(f"Error while updateing the decks cards: '{userDecktorename}'")
+                        else:
+                            print(f"The cards of '{userDecktorename}' are now avalible in free cards")
+                    
 
 class Deck:
     def __init__(self):
