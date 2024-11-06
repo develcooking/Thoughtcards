@@ -67,20 +67,14 @@ class Program:
 
         return True
 
-
     def migrate_card_ids(self, filename):
         self.all_cards = self.UseDB("SELECT * FROM cards;", filename)
         for crd in self.all_cards:
             if crd[3] is None:  # If card_id is None
-                newcardid = None
-                while not newcardid:
-                    candidate_id = uuid.uuid4().hex
-                    # Check that this id does not exist in the existing cards
-                    if not any(existing_card[3] == candidate_id for existing_card in self.all_cards):
-                        newcardid = candidate_id
-                        # Update the database with this new card_id
-                        self.UseDB("UPDATE cards SET card_id = ? WHERE deck_id = ? AND front = ?",
-                                    filename, (newcardid, crd[0], crd[1]))
+                newcardid = self.GenUUID4("card")
+                # Update the database with this new card_id
+                self.UseDB("UPDATE cards SET card_id = ? WHERE deck_id = ? AND front = ?",
+                            filename, (newcardid, crd[0], crd[1]))
 
         # Verify if card IDs were successfully updated
         if any(crd[3] is None for crd in self.all_cards):
@@ -88,6 +82,22 @@ class Program:
             return False
 
         return True
+
+    def GenUUID4(self, mode:str):
+        isvaliduuid = False
+        while isvaliduuid != True:
+            candidate_id = uuid.uuid4().hex
+            if mode == "card":
+                # Check that this id does not exist in the existing cards
+                if not any(existing_card[3] == candidate_id for existing_card in self.all_cards):
+                        isvaliduuid = True
+                        return candidate_id
+            elif mode == "deck":
+                decksarray = self.AvalibleDecks()
+                # Check if the deck exists
+                if not any(deck.id == new_deck_id for deck in decksarray):
+                    isvaliduuid = True
+                    return candidate_id
 
     def LoadDecks(self, filename):
         data_dir = os.path.join(os.getcwd(), 'data')
@@ -505,14 +515,8 @@ class Program:
             return
 
     def CreateDeck(self):
-        filename = self.GetFile()
-        self.LoadDecks(filename)
         decksarray = self.AvalibleDecks()
-        DeckIDExistsAlready = False
-        while not DeckIDExistsAlready:
-            new_deck_id = uuid.uuid4().hex
-            if not any(deck.id == new_deck_id for deck in decksarray):  # Check if the deck exists
-                DeckIDExistsAlready = True # makes sure that the newly created deckid is unic
+        new_deck_id = self.GenUUID4("deck")
         
         deck_name = input("Please enter your deck name here: ").strip()
         if deck_name in self.appoptions:
