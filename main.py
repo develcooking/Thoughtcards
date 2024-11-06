@@ -12,7 +12,6 @@ class Program:
         self.decks_model = []
         self.appoptions = ["/exit", "/dialog", "/newcard"]
 
-    
     def CheckForValidDB(self, filename):
         # Check if the database file exists
         db_file = os.path.join(self.decks_dir, filename)
@@ -41,28 +40,30 @@ class Program:
             required_columns = required_columns_map[table_name]
             actual_columns = {column[1]: True for column in table_status}
 
-            if not all(column in actual_columns for column in required_columns):
-                print(f"Your Database looks broken, please fix it for table '{table_name}'. Missing columns: {', '.join(column for column in required_columns if column not in actual_columns)}")
-                return False
+            # Check for missing columns
+            missing_columns = [column for column in required_columns if column not in actual_columns]
 
-            # Additional checks for the 'cards' table migration scenario
-            if table_name == "cards":
-                if "card_id" not in actual_columns:
-                    print("Your Database looks like it comes from a project like Memorado. If you want to migrate your database over, we would have to modify it. Please BACKUP YOUR DATABASE before migrating. THIS IS IRREVERSIBLE")
-                    u = input("Are you sure you want to continue? [Y|es]/[N|o]: ").strip()
-                    if u.lower() in ["yes", "y"]:
-                        if self.UseDB("ALTER TABLE cards ADD COLUMN card_id TEXT;", filename):  # Check if the ALTER TABLE command was successful
-                            if self.migrate_card_ids(filename):
-                                print("Migration was successful.")
+            if missing_columns:
+                if table_name == "cards" and "card_id" in missing_columns:
+                    print("The 'card_id' column is missing. Migration is possible.")
+                    user_response = input("Would you like to migrate your database now? [Y|es]/[N|o]: ").strip().lower()
+                    if user_response in ["yes", "y"]:
+                        try:
+                            # Attempt to add the card_id column
+                            if self.UseDB("ALTER TABLE cards ADD COLUMN card_id TEXT;", filename):
+                                if self.migrate_card_ids(filename):
+                                    print("Migration was successful.")
+                                else:
+                                    print("Migration of card IDs failed.")
+                                return True
                             else:
-                                print("Migration of card IDs failed.")
-                            return True
-                        else:
-                            print("Failed to alter the cards table. Migration aborted.")
-                            return False
-                    else:
-                        print("Migration aborted.")
-                        return False
+                                print("Failed to alter the cards table. Migration aborted.")
+                        except sqlite3.Error as e:
+                            print(f"Migration failed: {e}")
+                        return True  # Proceed if migration was attempted
+                else:
+                    print(f"Your Database looks broken, please fix it for table '{table_name}'. Missing columns: {', '.join(missing_columns)}")
+                    return False
 
         return True
 
