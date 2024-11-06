@@ -167,14 +167,14 @@ class Program:
         print("----------------")
         print("1. Show avalible decks")
         print("2. Enter deck via name")
-        print("3. Create a new deck")
-        print("4. Change cards of a deck")
+        print("3. Manage decks")
+        print("4. Change cards")
         print(f"You can use also all other option thoughtout the program: {self.appoptions}")
         print("----------------")
 
         isvalidnumber = False
         while isvalidnumber is False:
-            userpickedoption = input("Please enter a Number of the activity you want to do: ").strip()
+            userpickedoption = input("Please enter a number of the activity you want to do: ").strip()
             if userpickedoption in ["1", "2", "3", "4", self.appoptions]:
                 isvalidnumber = True
 
@@ -306,17 +306,40 @@ class Program:
         print("---")
         self.ShowAvalibleDecks(decksarray)
 
-        decknametoenter = input("Please input the name of the deck you want to enter: ").strip()
         isvaliddeckname = False
         selected_deck = None
 
+        print("You can also type in /free to acces the cards without a deck or /all for all cards in the db")
         while not isvaliddeckname:
-            if decknametoenter.lower() in decksarraylower:
+            decknametoenter = input("Please input the name of the deck you want to enter: ").strip()
+            if decknametoenter.lower() in self.appoptions:
+                self.AppOptions(decknametoenter.lower())
+            elif decknametoenter.lower() is "/free":
+                freecrd = []
+                for crd in self.all_cards:
+                    if crd.deck_id is None:
+                        freecrd.append[crd]
+                if freecrd is None:
+                    print("No cards without a deck")
+                else:
+                    isvaliddeckname = True
+                    selected_deck = freecrd
+            
+            elif decknametoenter.lower() is "/all":
+                allcrds = []
+                for crd in self.all_cards:
+                    allcrds.append(crd)
+                if allcrds is None:
+                    print("No cards are avalible")
+                else:
+                    isvaliddeckname = True
+                    selected_deck = allcrds
+
+            elif decknametoenter.lower() in decksarraylower:
                 isvaliddeckname = True
                 selected_deck = decksarray[decksarraylower.index(decknametoenter.lower())]
             else:
                 print(f"The deck: \"{decknametoenter}\" is not available.")
-                decknametoenter = input("Please input the name of the deck you want to enter: ").strip()
             
         print("Here are your cards in xml format:")
         cardcounter:int = 0
