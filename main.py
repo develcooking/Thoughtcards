@@ -107,6 +107,9 @@ class Program:
             print("There is a problem with your database pls fix it")
             sys.exit(1)
 
+        # Clear Decks_model to insure no wired bugs
+        self.decks_model = []
+
         # Creating a list of decks
         self.decks = self.UseDB("SELECT * FROM decks;", filename)
 
@@ -210,15 +213,22 @@ class Program:
  
     def AvalibleDecks(self):
         decksinmodel = []
+
         for deck in self.decks_model:
+            if deck.icon in [None, '']:
+                deck.icon = "None"
             decksinmodel.append(deck)
         return decksinmodel
     
     def ShowAvalibleDecks(self, decksarray):
+        if not decksarray:  # Check if the array is empty
+            print("No decks in database")
+            return  # Exit the method if there are no decks
+
         for deck in decksarray:
-            print(f"Deck: {deck.name} - {deck.icon}- Number of cards: {len(deck.cards_model)}")
-            if not self.decks_model:
-                print("No decks in database")
+            if deck.icon is None:
+                deck.icon = "No Image"
+            print(f"Deck: {deck.name} - {deck.icon} - Number of cards: {len(deck.cards_model)}")
 
     def EnterDeck(self):
         decksarray = self.AvalibleDecks()
