@@ -229,7 +229,6 @@ class Program:
 
         # Prints Out the Avalible decks to enter
         print("---")
-        decksarray = self.AvalibleDecks()
         self.ShowAvalibleDecks(decksarray)
 
         while isvaliddeckname != True:
@@ -282,7 +281,7 @@ class Program:
         self.BackToMainDialog()
 
     def BackToMainDialog(self):
-        goback = input("Do you want to go back to the main dialog? [Y|es]/[N|o]").strip()
+        goback = input("Do you want to go back to the main dialog? [Y|es]/[N|o]: ").strip()
         if goback.lower() in ["yes", "y"]:
             self.Dialog()
         elif goback.lower() in self.appoptions:
@@ -322,7 +321,7 @@ class Program:
             title = f"Card {cardcounter}"
 
             self.RenderCard(card, title, True, maxlen) # passes the card of a deck, render them out as multiple
-            card_index[cardcounter] = card.id
+            card_index[cardcounter] = card.card_id
 
         cardtoeditisvalid = False
         cardtoedit = None
@@ -338,8 +337,10 @@ class Program:
             print("Card number not found.")
             return  # Exit early if the card index is invalid
 
+        # Gets the card.card_id form the cardindex
         selected_card_id = card_index[int(cardtoedit)]
-        selected_card = next((card for card in selected_deck.cards_model if card.id == selected_card_id), None)
+        # Gets the exact card via the now known card_id
+        selected_card = next((card for card in selected_deck.cards_model if card.card_id == selected_card_id), None)
         
         if not selected_card:
             print("Card not found.")
@@ -348,6 +349,7 @@ class Program:
         # Render the card to be edited
         self.RenderCard(selected_card, "Card to Delete", False, None)
         self.EditCard(selected_card, False, None)
+        self.BackToMainDialog()
 
     
     def RenderCard(self, card, title:str, RenderMultipleCards:bool, maxlen:int):
@@ -384,12 +386,12 @@ class Program:
                 while not isvaliddeckname:
                     userdecknametoaddto = input("Please enter a valid deck name you want to add your new card to: ").strip()
                     if userdecknametoaddto.lower() in decksarraylower:
-                        isvaliddeckname = True
                         deck_to_add = decksarray[decksarraylower.index(userdecknametoaddto.lower())]
                         deck_to_add.cards_model.append(newcard)  # Add the new card to the selected deck
                         # Update the database; here you need to add a more robust way to store the card in the DB
                         self.UseDB("INSERT INTO cards (deck_id, front, back) VALUES (?, ?, ?)", filename, (deck_to_add.id, newcard.front, newcard.back))
                         print(f"New card added to deck '{deck_to_add.name}' successfully.")
+                        isvaliddeckname = True
                     
                     elif userdecknametoaddto.lower() in self.appoptions:
                         AppOptions(userdecknametoaddto.lower())
@@ -549,7 +551,7 @@ class Program:
             AddedIconPassed = True
 
         if AddedIconPassed:
-            self.UseDB("INSERT INTO decks (deck_id, name, icon) VALUES (?, ?, ?)", filename, (deck_id, deck_name, UserIcon))
+            self.UseDB("INSERT INTO decks (deck_id, name, icon) VALUES (?, ?, ?)", self.GetFile(), (deck_id, deck_name, UserIcon))
             print(f"New deck '{deck_name}' created successfully.")
         else:
             print("Error 213")
