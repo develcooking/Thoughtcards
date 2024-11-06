@@ -527,13 +527,16 @@ class Program:
             self.RenderCard(cardtodelete, "Card To Delete", False, None)
 
             print("Are you sure you want to delete this card?")
-            areyousure = input("THIS CHANGE IS IRREVERSIBLE [Y|es]/[N|o]: ").lower().strip()
-            if areyousure in ["yes", "y"]:
-                command = '''DELETE FROM cards WHERE deck_id = ? AND WHERE front = ? AND WHERE front = ?'''  # Assuming `id` is the primary key
-                parameters = (cardtodelete.deck_id, cardtodelete.front, cardtodelete.back,)  # Use card id for deletion
+            areyousure = input("THIS CHANGE IS IRREVERSIBLE [Yes]/[N|o]: ").lower().strip()
+            if areyousure is "yes":
+                command = "DELETE FROM cards WHERE card_id = ?"
+                parameters = (cardtodelete.card_id,)  # Ensure this is a one-item tuple
                 filename = self.GetFile()
-                self.UseDB(command, filename, parameters)
-                print("Card deleted successfully.")
+                success = self.UseDB(command, filename, parameters)  # Execute the command
+                if success:
+                    print("Card deleted successfully.")
+                else:
+                    print("Failed to delete the card.")
                 return
         else:
             print("Error: cardtodelete is not a card")
