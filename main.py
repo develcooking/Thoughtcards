@@ -432,25 +432,38 @@ class Program:
         elif userinputoption == "4":
             self.DeleteCard(selected_card)
 
-
         elif userinputoption == "5":
             print("---")
-            decksarray = self.AvalibleDecks()
-            self.ShowAvalibleDecks(decksarray)
-            decksarraylower = [d.name.lower() for d in decksarray]
-            isvaliddeckname = False
-            while not isvaliddeckname:
-                userdecknametoaddto = input("Please enter a valid deck name you want to add your new card to: ").strip()
-                if userdecknametoaddto.lower() in decksarraylower:
-                    isvaliddeckname = True
-                    updated_card = selected_card
-                    updated_card.deck_id = userdecknametoaddto  # Assign deck_id
-                    self.UseDB("INSERT INTO cards (deck_id, front, back) VALUES (?, ?, ?)", self.GetFile(), (updated_card.deck_id, updated_card.front, updated_card.back))
-                else:
-                    print("The entered deck name is not valid. Please try again.")
+            Addtodeck()
+
 
         elif userinputoption in self.appoptions:
             self.AppOptions(userinputoption)
+
+    def Addtodeck(self):
+        decksarray = self.AvalibleDecks()
+        self.ShowAvalibleDecks(decksarray)
+        decksarraylower = [d.name.lower() for d in decksarray]
+        isvaliddeckname = False
+
+        while not isvaliddeckname:
+            userdecknametoaddto = input("Please enter a valid deck name you want to add your new card to: ").strip()
+            
+            if userdecknametoaddto.lower() in decksarraylower:
+                isvaliddeckname = True
+                
+                # Find deck id for the selected deck
+                updated_deck_id = next(d.id for d in decksarray if d.name.lower() == userdecknametoaddto.lower())
+
+                # Create new car based on selected card
+                new_card_id = self.GenUUID4("card")  # Generate a new unique card ID
+                self.UseDB("INSERT INTO cards (deck_id, front, back, card_id) VALUES (?, ?, ?, ?)", 
+                        self.GetFile(), 
+                        (updated_deck_id, selected_card.front, selected_card.back, new_card_id))
+                
+                print(f"Successfully added a new card to deck '{userdecknametoaddto}' with the front: '{selected_card.front}' and back: '{selected_card.back}'.")
+            else:
+                print("The entered deck name is not valid. Please try again.")
 
     def EditSiteOfCard(self, selected_card, side):
         filename = self.GetFile()
