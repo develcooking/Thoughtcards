@@ -268,8 +268,23 @@ class Program:
             elif decknametoenter.lower() in decksarraylower:
                 isvaliddeckname = True
                 selected_deck = decksarray[decksarraylower.index(decknametoenter.lower())]
+                # get selected_deck_id
+                selected_deck_id = next(d.deck_id for d in decksarray if d.name.lower() == decknametoenter.lower())
             else:
                 print(f"The deck: \"{decknametoenter}\" is not available.")
+
+        for d in self.decks_model:
+            if selected_deck_id == d.deck_id:
+                if len(d.cards_model) == 0:
+                    i = input("There are no cards avalible. Do you want to create a new one? [Y|es]/[N|o]: ").strip().lower()
+                    if i in self.appoptions:
+                        self.AppOptions(i)
+                    elif i in ["yes", "y"]:
+                        self.NewCard()
+                    else:
+                        self.BackToMainDialog()
+                break
+
 
         shuffelmode = None
         availableshufflemodes = ["1", "forward", "2", "backward", "3", "random", self.appoptions]
@@ -279,10 +294,10 @@ class Program:
             print("2. Backward")
             print("3. Random")
             userinput = input("Please enter your answer here: ").lower().strip()
-            if userinput not in availableshufflemodes:
-                print("Not an available shuffle mode, please try again.")
-            elif userinput in self.appoptions:
+            if userinput in self.appoptions:
                 self.AppOptions(userinput)
+            elif userinput not in availableshufflemodes:
+                print("Not an available shuffle mode, please try again.")
             else:
                 shuffelmode = userinput
 
@@ -454,8 +469,9 @@ class Program:
                     if userdecknametoaddto.lower() in decksarraylower:
                         deck_to_add = decksarray[decksarraylower.index(userdecknametoaddto.lower())]
                         deck_to_add.cards_model.append(newcard)  # Add the new card to the selected deck
+                        isvaliddeckname = True
                     elif userdecknametoaddto.lower() in self.appoptions:
-                        AppOptions(userdecknametoaddto.lower())
+                        self.AppOptions(userdecknametoaddto.lower())
                     else:
                         print("The entered deck name is not valid. Please try again.")
             else:
@@ -466,7 +482,7 @@ class Program:
                 print("Error while inserting into database")
             if ioption == "y":
                 print(f"New card added to deck '{deck_to_add.name}' successfully.")
-                isvaliddeckname = True
+                
         else:
             print("Error: 212")
             self.Dialog()  # Returns to the main dialog
@@ -509,13 +525,13 @@ class Program:
 
         elif userinputoption == "5":
             print("---")
-            Addtodeck()
+            self.Addtodeck(selected_card)
 
 
         elif userinputoption in self.appoptions:
             self.AppOptions(userinputoption)
 
-    def Addtodeck(self):
+    def Addtodeck(self, selected_card):
         decksarray = self.AvalibleDecks()
         self.ShowAvalibleDecks(decksarray)
         decksarraylower = [d.name.lower() for d in decksarray]
@@ -679,34 +695,41 @@ class Program:
                         if UserIcon in self.appoptions:
                             self.AppOptions(UserIcon)
 
-            if option == "new":
-                if self.UseDB("INSERT INTO decks (deck_id, name, icon) VALUES (?, ?, ?)", filename, (new_deck_id, newuserdeckname, UserIcon)):
-                    print(f"New deck '{newuserdeckname}' created successfully.")
-                else:
-                    print(f"New deck '{newuserdeckname}' creation faild.")
+        if option == "new":
+            if self.UseDB("INSERT INTO decks (deck_id, name, icon) VALUES (?, ?, ?)", filename, (new_deck_id, newuserdeckname, UserIcon)):
+                print(f"New deck '{newuserdeckname}' created successfully.")
+            else:
+                print(f"New deck '{newuserdeckname}' creation faild.")
 
-            elif option == "rename":
-                deck_idofthetorenamed = next(d.deck_id for d in decksarray if d.name.lower() == userDecktorename.lower())
-                if self.UseDB("UPDATE decks SET name = ? WHERE deck_id = ?", filename, (newuserdeckname, deck_idofthetorenamed)):
-                    print(f"Renaming of deck form: '{userDecktorename}' to: '{newuserdeckname}' was successful")
+        elif option == "rename":
+            deck_idofthetorenamed = next(d.deck_id for d in decksarray if d.name.lower() == userDecktorename.lower())
+            if self.UseDB("UPDATE decks SET name = ? WHERE deck_id = ?", filename, (newuserdeckname, deck_idofthetorenamed)):
+                print(f"Renaming of deck form: '{userDecktorename}' to: '{newuserdeckname}' was successful")
+            else:
+                print(f"Renaming of deck form: '{userDecktorename}' to: '{newuserdeckname}' was not successful")
+        
+        elif option == "delete":
+            print("Are you shure you want to continue? This will delete the deck")
+            areyousure = input("Please type in: 'I AM SURE I WANT TO DELTETE THIS DECK': ").strip()
+            if areyousure == "I AM SURE I WANT TO DELTETE THIS DECK":
+                #get deckid 
+                deck_idofthetodelte = next(d.deck_id for d in decksarray if d.name.lower() == userDecktorename.lower())
+                hascards = True
+                for d in self.decks_model:
+                    if deck_idofthetodelte == d.deck_id:
+                        if len(d.cards_model) == 0:
+                            hascards = False
+                if not self.UseDB("DELETE FROM decks WHERE deck_id = ?", filename, (deck_idofthetodelte,)):
+                    print(f"Error while removeing the deck: '{userDecktorename}'")
+                    return
                 else:
-                    print(f"Renaming of deck form: '{userDecktorename}' to: '{newuserdeckname}' was not successful")
-            
-            elif option == "delete":
-                print("Are you shure you want to continue? This will delete the deck")
-                areyousure = input("Please type in: 'I AM SURE I WANT TO DELTETE THIS DECK'").strip()
-                if areyousure == "I AM SURE I WANT TO DELTETE THIS DECK":
-                    deck_idofthetodelte = next(d.deck_id for d in decksarray if d.name.lower() == userDecktorename.lower())
-                    if not self.UseDB("DELETE FROM decks WHERE decks.deck_id = ?", filename, deck_idofthetodelte):
-                        print(f"Error while removeing the deck: '{userDecktorename}'")
-                        return
-                    else:
-                        print(f"Removed successfully the deck: '{userDecktorename}'")
-                        if self.UseDB("UPDATE cards SET deck_id = ? WHERE deck_id = ? ", filename, (None, deck_idofthetodelte)):
+                    print(f"Removed successfully the deck: '{userDecktorename}'")
+                    if hascards:
+                        if not self.UseDB("UPDATE cards SET deck_id = ? WHERE deck_id = ? ", filename, (None, deck_idofthetodelte)):
                             print(f"Error while updateing the decks cards: '{userDecktorename}'")
                         else:
                             print(f"The cards of '{userDecktorename}' are now avalible in free cards")
-                    
+                
 class Deck:
     def __init__(self):
         self.deck_id = None
