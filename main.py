@@ -55,13 +55,21 @@ class Program:
             # Check for missing columns
             missing_columns = [column for column in required_columns if column not in actual_columns]
 
-            if missing_columns:
-                if table_name == "cards" and "card_id" in missing_columns:
-                    print("The 'card_id' column is missing. Migration is possible.")
+            # Check for columns with all None values
+            all_none_columns = []
+            for column in required_columns:
+                if column in actual_columns:
+                    column_values = [row[actual_columns[column]] for row in table_status]
+                    if all(value is None for value in column_values):
+                        all_none_columns.append(column)
+
+            if missing_columns or all_none_columns:
+                if table_name == "cards" and ("card_id" in missing_columns or "card_id" in all_none_columns):
+                    print("The 'card_id' column is missing or all values are None. Migration is possible.")
                     user_response = input("Would you like to migrate your database now? [Y|es]/[N|o]: ").strip().lower()
                     if user_response in ["yes", "y"]:
                         try:
-                            # Attempt to add the card_id column
+                            # Attempt to add the card_id column or update existing rows
                             if self.UseDB("ALTER TABLE cards ADD COLUMN card_id TEXT;", filename):
                                 if self.migrate_card_ids(filename):
                                     print("Migration was successful.")
@@ -115,7 +123,7 @@ class Program:
         data_dir = os.path.join(os.getcwd(), 'data')
         self.decks_dir = data_dir
 
-        if not self.CheckForValidDB(filename):
+        if self.CheckForValidDB(filename) != True:
             print("There is a problem with your database pls fix it")
             sys.exit(1)
 
@@ -398,7 +406,10 @@ class Program:
             title = f"Card {cardcounter}"
 
             self.RenderCard(card, title, True, maxlen)  # passes the card of a deck, renders them out as multiple
+        if card.card_id is not None:
             card_index[cardcounter] = card.card_id
+        else:
+            print(f"Warning: Card {cardcounter} has no ID")
 
         cardtoeditisvalid = False
         cardtoedit = None
